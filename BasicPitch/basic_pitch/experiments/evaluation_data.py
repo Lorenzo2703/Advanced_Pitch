@@ -165,11 +165,12 @@ def dagsthul_tracks_choir(data_home):
 def evaluation_data_generator(data_home, maestro_limit=None, slakh_limit=None):
     all_track_generator = chain(
         guitarset_tracks(update_data_home(data_home, "guitarset")),
-        slakh_tracks(update_data_home(data_home, "slakh"), limit=slakh_limit),
-        dagstuhl_tracks_singlevoice(update_data_home(data_home, "dagstuhl_choirset")),
-        dagsthul_tracks_choir(update_data_home(data_home, "dagstuhl_choirset")),
-        phenicx_anechoic(update_data_home(data_home, "phenicx_anechoic")),
-        phenicx_anechoic_mix(update_data_home(data_home, "phenicx_anechoic")),
-        maestro_tracks(update_data_home(data_home, "maestro"), limit=maestro_limit),
+        #TODO de-comment
+        # slakh_tracks(update_data_home(data_home, "slakh"), limit=slakh_limit),
+        # dagstuhl_tracks_singlevoice(update_data_home(data_home, "dagstuhl_choirset")),
+        # dagsthul_tracks_choir(update_data_home(data_home, "dagstuhl_choirset")),
+        # phenicx_anechoic(update_data_home(data_home, "phenicx_anechoic")),
+        # phenicx_anechoic_mix(update_data_home(data_home, "phenicx_anechoic")),
+        # maestro_tracks(update_data_home(data_home, "maestro"), limit=maestro_limit),
     )
     return all_track_generator
