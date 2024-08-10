@@ -33,9 +33,15 @@ def add_default(parser: argparse.ArgumentParser, dataset_name: str):
     parser.add_argument("--worker-harness-container-image", default="",
                         help="Container image to run dataset generation job with. \
                         Required due to non-python dependencies.")
+    parser.add_argument(
+        "--sdk_container_image",
+        default="",
+        help="Container image to run dataset generation job with. \
+                        Required due to non-python dependencies.",
+    )
+    parser.add_argument("--job_endpoint", default="embed", help="")
 
-
-def resolve_destination(namespace: argparse.Namespace, dataset: str, time_created: int) -> str:
+def resolve_destination(namespace: argparse.Namespace, time_created: int) -> str:
     return os.path.join(namespace.destination, str(time_created) if namespace.timestamped else "splits")
 
 
