@@ -19,7 +19,7 @@ import argparse
 import os
 import os.path as op
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 import numpy as np
@@ -35,7 +35,6 @@ from basic_pitch.callbacks import VisualizeCallback
 from basic_pitch.constants import DATASET_SAMPLING_FREQUENCY
 from basic_pitch.dataset import tf_example_deserialization
 
-from basic_pitch import models
 
 logging.basicConfig(level=logging.INFO)
 
@@ -115,7 +114,7 @@ def main(
         dataset_sampling_frequency=dataset_sampling_frequency,
     )
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
     tensorboard_log_dir = os.path.join(output, timestamp, "tensorboard")
     callbacks = [
         tf.keras.callbacks.TensorBoard(log_dir=tensorboard_log_dir, histogram_freq=1),
@@ -240,11 +239,12 @@ def console_entry_point():
         dataset.lower() for dataset in DATASET_SAMPLING_FREQUENCY.keys()
         if getattr(args, dataset.lower().replace("-", "_"))
     ]
-    dataset_sampling_frequency = [
+    dataset_sampling_frequency = np.array([
         frequency
         for dataset, frequency in DATASET_SAMPLING_FREQUENCY.items()
         if getattr(args, dataset.lower().replace("-", "_"))
-    ]
+    ])
+    
     dataset_sampling_frequency = dataset_sampling_frequency / np.sum(dataset_sampling_frequency)
 
     assert args.steps_per_epoch is not None

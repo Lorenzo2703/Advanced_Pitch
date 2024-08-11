@@ -43,10 +43,13 @@ def window_audio_file(audio_original, hop_size):
 
     """
 
+    # create a tensor with shape (n_windows, sample_one_window, 1) where window size is AUDIO_N_SAMPLES
     audio_windowed = tf.expand_dims(
         tf.signal.frame(audio_original, AUDIO_N_SAMPLES, hop_size, pad_end=True, pad_value=0),
         axis=-1,
     )
+
+    # create a list of dictionaries with start and end times of each window
     window_times = [
         {
             "start": t_start,
@@ -59,7 +62,7 @@ def window_audio_file(audio_original, hop_size):
 
 def get_audio_input(audio_path, overlap_len, hop_size):
     """
-    Read wave file (as mono), pad appropriately, and return as
+    Read wav file (as mono), pad appropriately, and return as
     windowed signal, with window length = AUDIO_N_SAMPLES
 
     Returns
@@ -72,10 +75,17 @@ def get_audio_input(audio_path, overlap_len, hop_size):
 
     """
     assert overlap_len % 2 == 0, "overlap_length must be even, got {}".format(overlap_len)
+
+    #load audio file and get original length
     audio_original, _ = librosa.load(audio_path, sr=AUDIO_SAMPLE_RATE, mono=True)
     original_length = audio_original.shape[0]
+
+    # pad audio with zeros at the beginning
     audio_original = np.concatenate([np.zeros((int(overlap_len / 2),), dtype=np.float32), audio_original])
+
+    # pad audio with zeros at the end and divide into windows
     audio_windowed, window_times = window_audio_file(audio_original, hop_size)
+
     return audio_windowed, window_times, original_length
 
 
@@ -90,30 +100,38 @@ def unwrap_output(output, audio_original_length, n_overlapping_frames):
     Return:
         array (n_times, n_freqs)
     """
+    
+    # check of dimensions
     raw_output = output.numpy()
     if len(raw_output.shape) != 3:
         return None
 
+    # remove half of the overlapping frames from beginning and end
     n_olap = int(0.5 * n_overlapping_frames)
     if n_olap > 0:
-        # remove half of the overlapping frames from beginning and end
         raw_output = raw_output[:, n_olap:-n_olap, :]
-
     output_shape = raw_output.shape
+
+    # compute number of output timeframes in the original audio
     n_output_frames_original = int(np.floor(audio_original_length * (ANNOTATIONS_FPS / AUDIO_SAMPLE_RATE)))
+    
+    # reshape to (n_times, n_freqs) and trim to original audio length (paste together batches)
     unwrapped_output = raw_output.reshape(output_shape[0] * output_shape[1], output_shape[2])
-    return unwrapped_output[:n_output_frames_original, :]  # trim to original audio length
+    return unwrapped_output[:n_output_frames_original, :] 
 
 
 def run_inference(audio_path, model):
-    # overlap 30 frames  ## TODO compute exact receptive field
-    n_overlapping_frames = 30
-    overlap_len = n_overlapping_frames * FFT_HOP
-    hop_size = AUDIO_N_SAMPLES - overlap_len
+    n_overlapping_frames = 30 # number of overlapping frames
+    overlap_len = n_overlapping_frames * FFT_HOP # number of samples in the overlapping region
+    hop_size = AUDIO_N_SAMPLES - overlap_len # hop size for the audio windows
 
+    # get audio input and divide into windows
     audio_windowed, _, audio_original_length = get_audio_input(audio_path, overlap_len, hop_size)
 
+    # predict
     output = model(audio_windowed)
+    
+    # unwrap output to a single matrix for eache output key (note, onset, contour)
     unwrapped_output = {k: unwrap_output(output[k], audio_original_length, n_overlapping_frames) for k in output}
     return unwrapped_output
 
@@ -123,6 +141,7 @@ def main(audio_path, model_path, midi_save_path, sonify):
 
     output = run_inference(audio_path, model)
 
+    # save midi file or not
     if midi_save_path == "":
         print("No midi save path specified. To save to midi file, pass a value to --midi-save-path")
         midi_save_path = None
@@ -133,6 +152,7 @@ def main(audio_path, model_path, midi_save_path, sonify):
         frame_thresh=0.3,
         midi_path=midi_save_path,
     )
+
     if sonify and midi_save_path != "":
         infer.sonify_midi(mid, midi_save_path + ".wav")
     return

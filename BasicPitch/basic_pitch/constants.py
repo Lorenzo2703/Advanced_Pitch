@@ -26,22 +26,23 @@ CONTOURS_BINS_PER_SEMITONE = 3
 # second bin if annotations_bins_per_semitone is 3)
 ANNOTATIONS_BASE_FREQUENCY = 27.5  # lowest key on a piano
 ANNOTATIONS_N_SEMITONES = 88  # number of piano keys
-AUDIO_SAMPLE_RATE = 22050
-AUDIO_N_CHANNELS = 1
-N_FREQ_BINS_NOTES = ANNOTATIONS_N_SEMITONES * NOTES_BINS_PER_SEMITONE
-N_FREQ_BINS_CONTOURS = ANNOTATIONS_N_SEMITONES * CONTOURS_BINS_PER_SEMITONE
+AUDIO_SAMPLE_RATE = 22050 # number of samples per second
+AUDIO_N_CHANNELS = 1 # number of audio channels
+N_FREQ_BINS_NOTES = ANNOTATIONS_N_SEMITONES * NOTES_BINS_PER_SEMITONE # number of frequency bins for notes
+N_FREQ_BINS_CONTOURS = ANNOTATIONS_N_SEMITONES * CONTOURS_BINS_PER_SEMITONE # number of frequency bins for contours
 
-AUDIO_WINDOW_LENGTH = 2  # duration in seconds of training examples - original 1
+AUDIO_WINDOW_LENGTH = 2  # duration in seconds of training examples
 
-ANNOTATIONS_FPS = AUDIO_SAMPLE_RATE // FFT_HOP
-ANNOTATION_HOP = 1.0 / ANNOTATIONS_FPS
+ANNOTATIONS_FPS = AUDIO_SAMPLE_RATE // FFT_HOP # frames per second of the annotations
+ANNOTATION_HOP = 1.0 / ANNOTATIONS_FPS # time between annotations frames (time-lenght of each frame)
 
-# ANNOT_N_TIME_FRAMES is the number of frames in the time-frequency representations we compute
+# ANNOTATION_N_SAMPLES is the number of time frames for the clipped audio that we use as input to the models
 ANNOT_N_FRAMES = ANNOTATIONS_FPS * AUDIO_WINDOW_LENGTH
 
 # AUDIO_N_SAMPLES is the number of samples in the (clipped) audio that we use as input to the models
-AUDIO_N_SAMPLES = AUDIO_SAMPLE_RATE * AUDIO_WINDOW_LENGTH - FFT_HOP
+AUDIO_N_SAMPLES = AUDIO_SAMPLE_RATE * AUDIO_WINDOW_LENGTH - FFT_HOP # we subtract FFT_HOP to avoid padding (this way it is already padded)
 
+# DATASET_SAMPLING_FREQUENCY is the factor by which we downsample the dataset
 DATASET_SAMPLING_FREQUENCY = {
     "MAESTRO": 5,
     "GuitarSet": 2,

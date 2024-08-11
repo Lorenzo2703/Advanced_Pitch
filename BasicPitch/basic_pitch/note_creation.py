@@ -79,9 +79,12 @@ def model_output_to_notes(
         midi : pretty_midi.PrettyMIDI object
         note_events: A list of note event tuples (start_time_s, end_time_s, pitch_midi, amplitude)
     """
+
+    # load the output from the model (matrices of activations)
     frames = output["note"]
     onsets = output["onset"]
     contours = output["contour"]
+
 
     estimated_notes = output_to_notes_polyphonic(
         frames,
@@ -189,14 +192,20 @@ def get_pitch_bends(
     Returns:
         note events with pitch bends
     """
+    # create a gaussian window to smooth the pitch bend estimation (frequency domain)
     window_length = n_bins_tolerance * 2 + 1
     freq_gaussian = scipy.signal.gaussian(window_length, std=5)
+
     note_events_with_pitch_bends = []
     for start_idx, end_idx, pitch_midi, amplitude in note_events:
+        # find the frequency bin corresponding to the pitch
         freq_idx = int(np.round(midi_pitch_to_contour_bin(pitch_midi)))
+        
+        # frequency bins to consider for pitch bend estimation (within n_bins_tolerance) and within the contour matrix
         freq_start_idx = np.max([freq_idx - n_bins_tolerance, 0])
         freq_end_idx = np.min([N_FREQ_BINS_CONTOURS, freq_idx + n_bins_tolerance + 1])
 
+        # create a submatrix of the pitch contour matrix for the note event and apply the gaussian smoothing
         pitch_bend_submatrix = (
             contours[start_idx:end_idx, freq_start_idx:freq_end_idx]
             * freq_gaussian[
@@ -204,8 +213,10 @@ def get_pitch_bends(
                 - np.max([0, freq_idx - (N_FREQ_BINS_CONTOURS - n_bins_tolerance - 1)])
             ]
         )
+
         pb_shift = n_bins_tolerance - np.max([0, n_bins_tolerance - freq_idx])
 
+        # create a list of frequency bins with the maximum amplitude for each time step within the note event and whitin the submatrix
         bends: Optional[List[int]] = list(
             np.argmax(pitch_bend_submatrix, axis=1) - pb_shift
         )  # this is in units of 1/3 semitones
@@ -331,6 +342,7 @@ def constrain_frequency(
 
 
 def model_frames_to_time(n_frames: int) -> np.ndarray:
+    # create a vector with the real times of each frame
     original_times = librosa.core.frames_to_time(
         np.arange(n_frames),
         sr=AUDIO_SAMPLE_RATE,
@@ -377,18 +389,21 @@ def output_to_notes_polyphonic(
 
     n_frames = frames.shape[0]
 
-    onsets, frames = constrain_frequency(onsets, frames, max_freq, min_freq)
+    onsets, frames = constrain_frequency(onsets, frames, max_freq, min_freq) #zero out activations above or below the max/min frequencies
+
     # use onsets inferred from frames in addition to the predicted onsets
     if infer_onsets:
         onsets = get_infered_onsets(onsets, frames)
 
+    #matrix of peaks at onsets
     peak_thresh_mat = np.zeros(onsets.shape)
     peaks = scipy.signal.argrelmax(onsets, axis=0)
     peak_thresh_mat[peaks] = onsets[peaks]
 
+    # find onsets
     onset_idx = np.where(peak_thresh_mat >= onset_thresh)
     onset_time_idx = onset_idx[0][::-1]  # sort to go backwards in time
-    onset_freq_idx = onset_idx[1][::-1]  # sort to go backwards in time
+    onset_freq_idx = onset_idx[1][::-1]  # sort to go backwards in freq
 
     remaining_energy = np.zeros(frames.shape)
     remaining_energy[:, :] = frames[:, :]
@@ -400,9 +415,12 @@ def output_to_notes_polyphonic(
         if note_start_idx >= n_frames - 1:
             continue
 
-        # find time index at this frequency band where the frames drop below an energy threshold
+        # find time_index at this frequency band where the frames drop below an energy threshold
         i = note_start_idx + 1
-        k = 0  # number of frames since energy dropped below threshold
+        
+        # number of frames since energy dropped below threshold
+        k = 0
+
         while i < n_frames - 1 and k < energy_tol:
             if remaining_energy[i, freq_idx] < frame_thresh:
                 k += 1
@@ -416,6 +434,7 @@ def output_to_notes_polyphonic(
         if i - note_start_idx <= min_note_len:
             continue
 
+        # zero out the energy in the frames matrix for this note and its neighbors 
         remaining_energy[note_start_idx:i, freq_idx] = 0
         if freq_idx < MAX_FREQ_IDX:
             remaining_energy[note_start_idx:i, freq_idx + 1] = 0
@@ -423,7 +442,7 @@ def output_to_notes_polyphonic(
             remaining_energy[note_start_idx:i, freq_idx - 1] = 0
 
         # add the note
-        amplitude = np.mean(frames[note_start_idx:i, freq_idx])
+        amplitude = np.mean(frames[note_start_idx:i, freq_idx]) #mean amplitude of the note
         note_events.append(
             (
                 note_start_idx,

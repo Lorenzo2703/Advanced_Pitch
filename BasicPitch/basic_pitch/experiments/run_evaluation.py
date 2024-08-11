@@ -29,8 +29,8 @@ from mirdata import io
 
 from basic_pitch import note_creation
 
-from predict import run_inference
-from evaluation_data import evaluation_data_generator
+from basic_pitch.experiments.predict import run_inference
+from basic_pitch.experiments.evaluation_data import evaluation_data_generator
 
 logger = logging.getLogger("mirdata")
 logger.setLevel(logging.ERROR)
@@ -39,12 +39,14 @@ logger.setLevel(logging.ERROR)
 def model_inference(audio_path, model, save_path,minimum_note_length=127.70):
 
     output = run_inference(audio_path, model)
+
+    # load the output from the model (matrices (n_frames, n_bins))
     frames = output["note"]
     onsets = output["onset"]
 
     min_note_len = int(np.round(minimum_note_length / 1000 * (AUDIO_SAMPLE_RATE / FFT_HOP))) # add min_note len since it is required
 
-
+    # list of tuples [(start_time_frames, end_time_frames, pitch_midi, amplitude)]
     estimated_notes = note_creation.output_to_notes_polyphonic(
         frames,
         onsets,
@@ -55,42 +57,49 @@ def model_inference(audio_path, model, save_path,minimum_note_length=127.70):
         max_freq=None, # needed in the function, it will throw error if not provided
         min_freq=None # needed in the function, it will throw error if not provided
     )
-    # [(start_time_seconds, end_time_seconds, pitch_midi, amplitude)]
+    # load the pitch_midis
     pitch = np.array([n[2] for n in estimated_notes]) 
+    
+    # convert the pitch_midis to hz
     pitch_hz = librosa.midi_to_hz(pitch)
+    
+    # add to the estimated notes the pitch_bends lists
     estimated_notes_with_pitch_bend = note_creation.get_pitch_bends(output["contour"],estimated_notes)
+    # convert the frames to real time
     times_s = note_creation.model_frames_to_time(output["contour"].shape[0])
     
     estimated_notes_time_seconds = [
         (times_s[note[0]], times_s[note[1]], note[2], note[3], note[4]) for note in estimated_notes_with_pitch_bend
     ]
 
+    # create the midi file from the estimated notes
     midi = note_creation.note_events_to_midi(estimated_notes_time_seconds, save_path)
 
+    # get the intervals of the notes
     intervals = np.array([[times_s[note[0]], times_s[note[1]]] for note in estimated_notes_with_pitch_bend])
     
 
-    return intervals, pitch_hz,midi # add midi in the return to be used in the evaluation
+    return intervals, pitch_hz, midi 
 
-    
-    # intervals = np.array([[n[0], n[1]] for n in estimated_notes])
-    # pitch_hz = librosa.midi_to_hz(np.array([n[2] for n in estimated_notes]))
-
-    # note_creation.note_events_to_midi(estimated_notes, save_path)
-
-    # return intervals, pitch_hz
 
 
 def main(model_name: str, data_home: str) -> None:
+
+    #Load the trained model
     model_path = "{}".format(model_name)
     model = tf.saved_model.load(model_path)
 
     save_dir = os.path.join("model_outputs", model_name)
 
+    # create the save directory if it does not exist
     all_track_generator = evaluation_data_generator(data_home)
     scores = {}
+    
+    # iterate trough a generator that yields the dataset, track_id, instrument, audio_path, and note_data
     for dataset, track_id, instrument, audio_path, note_data in all_track_generator:
         print("[{}] {}: {}".format(dataset, track_id, instrument))
+        
+        # create the save path for the midi file
         save_path = os.path.join(save_dir, "{}.mid".format(track_id.replace("/", "-")))
 
         if os.path.exists(save_path):
@@ -99,9 +108,11 @@ def main(model_name: str, data_home: str) -> None:
                 est_intervals = []
                 est_pitches = []
             else:
+                # estimated intervals of times (start and end) and pitches from the midi file
                 est_intervals, est_pitches, _ = est_notes.to_mir_eval()
+        
+        # if the midi file does not exist, run the model inference
         else:
-            # est_intervals, est_pitches = model_inference(audio_path, model, save_path)
             __,_,midi = model_inference(audio_path, model, save_path)
 
             est_notes = io.load_notes_from_midi(midi = midi)
@@ -110,17 +121,21 @@ def main(model_name: str, data_home: str) -> None:
                 est_pitches = []
             else:
                 est_intervals, est_pitches, _ = est_notes.to_mir_eval()
-                
+
+        # get the reference intervals and pitches from the annotations        
         ref_intervals, ref_pitches, _ = note_data.to_mir_eval()
 
         if len(est_intervals) == 0 or len(ref_intervals) == 0:
             scores_trackid = {}
         else:
+            # evaluate the model output obtaining the scores as a dictionary
             scores_trackid = mir_eval.transcription.evaluate(ref_intervals, ref_pitches, est_intervals, est_pitches)
 
+        # add the scores to the scores dictionary
         scores[track_id] = scores_trackid
         scores[track_id]["instrument"] = instrument
 
+    # save the scores to a json file
     with open("{}.json".format(model_name), "w") as fhandle:
         json.dump(scores, fhandle)
 
@@ -131,7 +146,7 @@ if __name__ == "__main__":
         "-m",
         "--model",
         type=str,
-        help="Which model to run evaluation on",
+        help="Path to the saved model directory.",
     )
     parser.add_argument("--data-home", type=str, help="Location to store evaluation data.")
     args = parser.parse_args()
