@@ -47,8 +47,8 @@ DATASET_SAMPLING_FREQUENCY = {
     "MAESTRO": 5,
     "GuitarSet": 2,
     "MedleyDB-Pitch": 2,
-    "iKala": 2,
     "slakh": 2,
+    "Dagstuhl": 1,
 }
 
 

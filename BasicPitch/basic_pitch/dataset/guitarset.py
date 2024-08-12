@@ -151,7 +151,7 @@ def create_input_data(
 
 def main(known_args, pipeline_args):
     time_created = int(time.time())
-    destination = commandline.resolve_destination(known_args, GUITARSET_DIR, time_created)
+    destination = commandline.resolve_destination(known_args, time_created)
     input_data = create_input_data(known_args.train_percent, known_args.validation_percent, known_args.split_seed)
 
     pipeline_options = {
