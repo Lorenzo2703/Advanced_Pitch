@@ -17,6 +17,8 @@
 
 import argparse
 import logging
+logging.basicConfig(level=logging.INFO)
+
 import os
 import os.path as op
 import time

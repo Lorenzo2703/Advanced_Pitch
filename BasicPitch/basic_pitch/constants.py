@@ -49,6 +49,7 @@ DATASET_SAMPLING_FREQUENCY = {
     "MedleyDB-Pitch": 2,
     "slakh": 2,
     "Dagstuhl": 1,
+    "hwd":2,
 }
 
 
