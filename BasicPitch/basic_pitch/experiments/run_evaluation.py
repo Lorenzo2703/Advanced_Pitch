@@ -27,6 +27,7 @@ import numpy as np
 import tensorflow as tf
 from mirdata import io
 
+
 from basic_pitch import note_creation
 
 from basic_pitch.experiments.predict import run_inference
@@ -88,6 +89,9 @@ def main(model_name: str, data_home: str) -> None:
     #Load the trained model
     model_path = "{}".format(model_name)
     model = tf.saved_model.load(model_path)
+    # Print the weights of the model
+    for variable in model.variables:
+        print(variable.name, variable.shape)
 
     save_dir = os.path.join("model_outputs", model_name)
 
@@ -122,8 +126,12 @@ def main(model_name: str, data_home: str) -> None:
             else:
                 est_intervals, est_pitches, _ = est_notes.to_mir_eval()
 
-        # get the reference intervals and pitches from the annotations        
-        ref_intervals, ref_pitches, _ = note_data.to_mir_eval()
+        # get the reference intervals and pitches from the annotations
+        if dataset == 'hwd':
+            ref_intervals = note_data['onset']
+            ref_pitches = note_data['pitch']
+        else:        
+            ref_intervals, ref_pitches, _ = note_data.to_mir_eval()
 
         if len(est_intervals) == 0 or len(ref_intervals) == 0:
             scores_trackid = {}
@@ -145,10 +153,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "-m",
         "--model",
+        default=os.path.join(os.path.expanduser('~'), "BasicPitch","basic_pitch","saved_models","20240815-1303", "model.best"),
         type=str,
         help="Path to the saved model directory.",
     )
-    parser.add_argument("--data-home", type=str, help="Location to store evaluation data.")
+    parser.add_argument("--data-home", type=str,default=os.path.join(os.path.expanduser('~'), 'BasicPitch'), help="Location to store evaluation data.")
     args = parser.parse_args()
 
     main(args.model, args.data_home)

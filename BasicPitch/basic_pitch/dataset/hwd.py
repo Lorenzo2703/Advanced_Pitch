@@ -47,7 +47,7 @@ HWD_DICT = {
         'Showman': (44.5, [0], 90)
     }
 
-def crop_and_shift_midi(midi_path, midi_output, duration, song):
+def crop_and_shift_midi(midi_path, duration, song):
     # load MIDI file
     midi_data = pretty_midi.PrettyMIDI(midi_path)
     # get start time and instruments to keep
@@ -85,9 +85,7 @@ def crop_and_shift_midi(midi_path, midi_output, duration, song):
             # Aggiungi lo strumento al nuovo file MIDI
             cropped_midi.instruments.append(new_instrument)
 
-    # Salva il nuovo file MIDI
-    cropped_midi.write(midi_output)
-    return
+    return cropped_midi
 
 import numpy as np 
 import pretty_midi
@@ -100,35 +98,39 @@ from basic_pitch.constants import (
 )
 
 
-def create_onset(midi_path):
+def create_onset(midi_data, evaluation=False):
 
     # Load MIDI file
-    midi_data = pretty_midi.PrettyMIDI(midi_path)
-    onsets_indices = np.empty((0, 2))
-
+    if evaluation == False:
+        onsets_indices = np.empty((0, 2))
+    else:
+        onsets_indices = np.empty((0, 3))
     # Get onsets indices
     for instrument in midi_data.instruments:
         for note in instrument.notes:
-            row = [note.start, note.pitch]
+            if evaluation == False:
+                row = [note.start, note.pitch]
+            else:
+                row = [note.start, note.end, note.pitch]
             onsets_indices = np.vstack((onsets_indices, row))
-    # Translate from time to frame index
-    onsets_indices[:,0] = np.round(onsets_indices[:,0] / ANNOTATION_HOP)
+    if evaluation == False:
 
-    # Translate from MIDI pitch to frequency bin
-    onsets_indices[:,1] = librosa.midi_to_hz(onsets_indices[:,1])
-    onsets_indices[:,1] = 12.0 * NOTES_BINS_PER_SEMITONE * np.log2(onsets_indices[:,1] / ANNOTATIONS_BASE_FREQUENCY)
-    onsets_indices[:,1] = onsets_indices[:,1]
+        # Translate from time to frame index
+        onsets_indices[:,0] = np.round(onsets_indices[:,0] / ANNOTATION_HOP)
 
-    # Round to the nearest integer (they are indices)
-    onsets_indices = onsets_indices.astype(int)
+        # Translate from MIDI pitch to frequency bin
+        onsets_indices[:,1] = librosa.midi_to_hz(onsets_indices[:,1])
+        onsets_indices[:,1] = 12.0 * NOTES_BINS_PER_SEMITONE * np.log2(onsets_indices[:,1] / ANNOTATIONS_BASE_FREQUENCY)
+        onsets_indices[:,1] = onsets_indices[:,1]
+
+        # Round to the nearest integer (they are indices)
+        onsets_indices = onsets_indices.astype(int)
     # Create onset values
     onset_values = np.ones(onsets_indices.shape[0])
     return onsets_indices, onset_values
 
-def create_notes(midi_path):
+def create_notes(midi_data):
 
-    # Load MIDI file
-    midi_data = pretty_midi.PrettyMIDI(midi_path)
     note_indices = np.empty((0, 2))
 
     for instrument in midi_data.instruments:
@@ -152,9 +154,8 @@ def create_notes(midi_path):
     note_values = np.ones(note_indices.shape[0])
     return note_indices, note_values
 
-def create_contour(midi_path):
-    # Load MIDI file
-    midi_data = pretty_midi.PrettyMIDI(midi_path)
+def create_contour(midi_data):
+
     note_indices = np.empty((0, 2))
 
     for instrument in midi_data.instruments:
@@ -242,11 +243,11 @@ class HWDSetToTfExample(beam.DoFn):
                 time_scale = np.arange(0, duration + ANNOTATION_HOP, ANNOTATION_HOP)
                 n_time_frames = len(time_scale)
 
-                crop_and_shift_midi(midi_path=os.path.join(local_tmp_dir,midi_path), midi_output=os.path.join(local_tmp_dir, f'{track_id}.mid'), duration=duration, song=track_id[:track_id.find("_")])
+                midi_data = crop_and_shift_midi(midi_path=os.path.join(local_tmp_dir,midi_path), duration=duration, song=track_id[:track_id.find("_")])
 
-                note_indices, note_values = create_notes(midi_path= os.path.join(local_tmp_dir, f'{track_id}.mid'))
-                onset_indices, onset_values = create_onset(midi_path= os.path.join(local_tmp_dir, f'{track_id}.mid'))
-                contour_indices, contour_values = create_contour(midi_path= os.path.join(local_tmp_dir, f'{track_id}.mid'))
+                note_indices, note_values = create_notes(midi_data=midi_data)
+                onset_indices, onset_values = create_onset(midi_data=midi_data,)
+                contour_indices, contour_values = create_contour(midi_data=midi_data,)
                                 
                 batch.append(
                     tf_example_serialization.to_transcription_tfexample(

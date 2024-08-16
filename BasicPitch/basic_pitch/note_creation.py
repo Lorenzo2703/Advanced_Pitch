@@ -175,6 +175,10 @@ def midi_pitch_to_contour_bin(pitch_midi: int) -> np.array:
     pitch_hz = librosa.midi_to_hz(pitch_midi)
     return 12.0 * CONTOURS_BINS_PER_SEMITONE * np.log2(pitch_hz / ANNOTATIONS_BASE_FREQUENCY)
 
+def gaussian(size, std):
+    x = np.arange(0, size) - (size - 1) / 2
+    g = np.exp(-0.5 * (x / std)**2)
+    return g / g.sum()
 
 def get_pitch_bends(
     contours: np.ndarray, note_events: List[Tuple[int, int, int, float]], n_bins_tolerance: int = 25
@@ -194,7 +198,7 @@ def get_pitch_bends(
     """
     # create a gaussian window to smooth the pitch bend estimation (frequency domain)
     window_length = n_bins_tolerance * 2 + 1
-    freq_gaussian = scipy.signal.gaussian(window_length, std=5)
+    freq_gaussian = gaussian(window_length, std=5)
 
     note_events_with_pitch_bends = []
     for start_idx, end_idx, pitch_midi, amplitude in note_events:

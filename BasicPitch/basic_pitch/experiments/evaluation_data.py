@@ -19,6 +19,10 @@ import csv
 from itertools import chain
 import os
 import mirdata
+import numpy as np
+
+import sox
+from basic_pitch.dataset import hwd
 
 
 def load_test_tracks(dataset):
@@ -47,6 +51,23 @@ def update_data_home(data_home, dataset_name):
     if dataset_name not in data_home:
         return os.path.join(data_home, dataset_name)
 
+def hwd_tracks(data_home):
+    test_tracks = load_test_tracks("hwd")
+
+    for track_id in test_tracks:
+        instrument = track_id.split("_")[1].lower()
+        print(track_id.split("_"))
+        audio_path = os.path.join(os.path.expanduser('~'), 'mir_datasets', 'hwd', f'MLEndHWD_{track_id.split("_")[0]}_Audio_Files' ,f'{track_id.split("_")[-1]}.wav')
+        full_midi_path = os.path.join(os.path.expanduser('~'), 'mir_datasets', 'hwd', 'MIDI',f'{track_id.split("_")[0]}.mid')
+        duration = sox.file_info.duration(audio_path)
+        midi_data = hwd.crop_and_shift_midi(midi_path=full_midi_path, duration=duration, song=track_id.split("_")[0])
+        onset_indices, _ = hwd.create_onset(midi_data=midi_data,evaluation=True)
+
+        note_data = {}
+        note_data['onset'] = np.column_stack((onset_indices[:,0], onset_indices[:,1]))
+        note_data['pitch'] = onset_indices[:,2]
+        
+        yield ("hwd", track_id, instrument, audio_path, note_data)
 
 def maestro_tracks(data_home, limit=20):
     # load the test tracks ids for maestro dataset
@@ -91,41 +112,26 @@ def slakh_tracks(data_home, limit=100):
 
 
 def dagstuhl_tracks_singlevoice(data_home):
-    
-    dagstuhl = mirdata.initialize("dagstuhl_choirset", data_home=data_home)
-
-    for track in dagstuhl.load_tracks().values():
-        if track.audio_hsm_path is None or track.score is None:
-            continue
-
-        yield ("dagstuhl_choirset", track.track_id, "vocals", track.audio_hsm_path, track.score)
-
-
-def dagsthul_tracks_choir(data_home):
+    test_tracks = load_test_tracks("dagstuhl_choirset")
 
     dagstuhl = mirdata.initialize("dagstuhl_choirset", data_home=data_home)
-    #load the multitracks from the dataset
-    mtracks = [mtrack for mtrack in dagstuhl.load_multitracks().values()]
 
-    for mtrack in mtracks:
-        no_score = False
-        # check if the multitrack has a score and all the tracks have a score
-        for track in mtrack.tracks.values():
-            if track.score is None:
-                no_score = True
-                break
-        if no_score:
+    for track_id in test_tracks:
+        track = dagstuhl.track(track_id)
+        if track.audio_lrx_path is None or track.score is None:
             continue
 
-        yield ("dagstuhl_choirset", mtrack.mtrack_id, "vocals-multi", mtrack.audio_rev_path, mtrack.notes)
+        yield ("dagstuhl_choirset", track.track_id, "vocals", track.audio_lrx_path, track.score)
+
 
 
 def evaluation_data_generator(data_home, maestro_limit=None, slakh_limit=None):
     all_track_generator = chain(
-        guitarset_tracks(update_data_home(data_home, "guitarset")),
-        slakh_tracks(update_data_home(data_home, "slakh"), limit=slakh_limit),
-        dagstuhl_tracks_singlevoice(update_data_home(data_home, "dagstuhl_choirset")),
-        dagsthul_tracks_choir(update_data_home(data_home, "dagstuhl_choirset")),
-        maestro_tracks(update_data_home(data_home, "maestro"), limit=maestro_limit),
+        hwd_tracks(update_data_home(data_home, "hwd")),
+        #guitarset_tracks(update_data_home(data_home, "guitarset")),
+        #slakh_tracks(update_data_home(data_home, "slakh"), limit=slakh_limit),
+        #dagstuhl_tracks_singlevoice(update_data_home(data_home, "dagstuhl_choirset")),
+        #dagsthul_tracks_choir(update_data_home(data_home, "dagstuhl_choirset")),
+        #maestro_tracks(update_data_home(data_home, "maestro"), limit=maestro_limit),
     )
     return all_track_generator
