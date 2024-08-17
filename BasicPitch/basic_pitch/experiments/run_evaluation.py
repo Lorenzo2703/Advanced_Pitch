@@ -37,7 +37,7 @@ logger = logging.getLogger("mirdata")
 logger.setLevel(logging.ERROR)
 
 
-def model_inference(audio_path, model, save_path,minimum_note_length=127.70):
+def model_inference(audio_path, model, minimum_note_length=127.70):
 
     output = run_inference(audio_path, model)
 
@@ -74,7 +74,7 @@ def model_inference(audio_path, model, save_path,minimum_note_length=127.70):
     ]
 
     # create the midi file from the estimated notes
-    midi = note_creation.note_events_to_midi(estimated_notes_time_seconds, save_path)
+    midi = note_creation.note_events_to_midi(estimated_notes_time_seconds)
 
     # get the intervals of the notes
     intervals = np.array([[times_s[note[0]], times_s[note[1]]] for note in estimated_notes_with_pitch_bend])
@@ -94,7 +94,7 @@ def main(model_name: str, data_home: str) -> None:
         print(variable.name, variable.shape)
 
     save_dir = os.path.join("model_outputs", model_name)
-
+    os.makedirs(save_dir, exist_ok=True)
     # create the save directory if it does not exist
     all_track_generator = evaluation_data_generator(data_home)
     scores = {}
@@ -117,7 +117,7 @@ def main(model_name: str, data_home: str) -> None:
         
         # if the midi file does not exist, run the model inference
         else:
-            __,_,midi = model_inference(audio_path, model, save_path)
+            __,_,midi = model_inference(audio_path, model)
 
             est_notes = io.load_notes_from_midi(midi = midi)
             if est_notes is None:
@@ -143,8 +143,9 @@ def main(model_name: str, data_home: str) -> None:
         scores[track_id] = scores_trackid
         scores[track_id]["instrument"] = instrument
 
+    
     # save the scores to a json file
-    with open("{}.json".format(model_name), "w") as fhandle:
+    with open(os.path.join(save_dir,f'{model_name}.json'), "w") as fhandle:
         json.dump(scores, fhandle)
 
 
@@ -153,7 +154,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-m",
         "--model",
-        default=os.path.join(os.path.expanduser('~'), "BasicPitch","basic_pitch","saved_models","20240815-1303", "model.best"),
+        default=os.path.join(os.path.expanduser('~'), "saved_models","20240815-1303", "model.best"),
         type=str,
         help="Path to the saved model directory.",
     )

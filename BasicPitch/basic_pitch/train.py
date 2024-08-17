@@ -165,7 +165,7 @@ def console_entry_point():
     """From pip installed script."""
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("--source", default = op.join(op.expanduser('~'), 'data', 'basic_pitch'), help="Path to directory containing train/validation splits.")
-    parser.add_argument("--output", default=op.join(op.expanduser('~'), 'BasicPitch', 'basic_pitch', 'saved_models'), help="Directory to save the model in.")
+    parser.add_argument("--output", default=op.join(op.expanduser('~'), 'saved_models'), help="Directory to save the model in.")
     parser.add_argument("-e", "--epochs", type=int, default=50, help="Number of training epochs.")
     parser.add_argument(
         "-b",
