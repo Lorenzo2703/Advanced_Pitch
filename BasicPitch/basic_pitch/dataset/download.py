@@ -9,11 +9,13 @@ from basic_pitch.dataset.maestro import main as maestro_main
 from basic_pitch.dataset.medleydb_pitch import main as medleydb_pitch_main
 from basic_pitch.dataset.slakh import main as slakh_main
 from basic_pitch.dataset.hwd import main as hwd_main
+from basic_pitch.dataset.dagstuhl import main as dagstuhl_main
 
 DATASET_DICT = {
     'guitarset': guitarset_main,
     'maestro': maestro_main,
     'medleydb_pitch': medleydb_pitch_main,
+    'dagstuhl': dagstuhl_main,
     'slakh': slakh_main,
     'hwd': hwd_main,
 }

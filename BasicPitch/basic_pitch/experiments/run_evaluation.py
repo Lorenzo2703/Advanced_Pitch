@@ -28,7 +28,7 @@ import tensorflow as tf
 from mirdata import io
 
 
-from basic_pitch import note_creation
+from basic_pitch import ICASSP_2022_MODEL_PATH, note_creation
 
 from basic_pitch.experiments.predict import run_inference
 from basic_pitch.experiments.evaluation_data import evaluation_data_generator

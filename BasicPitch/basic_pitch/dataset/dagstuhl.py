@@ -218,7 +218,7 @@ def create_input_data(
         return "test"
 
     dagstuhl = mirdata.initialize("dagstuhl_choirset")
-    #dagstuhl.download()
+    dagstuhl.download()
 
     return [(track_id, determine_split()) for track_id in dagstuhl.track_ids]
 

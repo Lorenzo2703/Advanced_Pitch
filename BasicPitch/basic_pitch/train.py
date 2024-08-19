@@ -166,7 +166,7 @@ def console_entry_point():
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("--source", default = op.join(op.expanduser('~'), 'data', 'basic_pitch'), help="Path to directory containing train/validation splits.")
     parser.add_argument("--output", default=op.join(op.expanduser('~'), 'saved_models'), help="Directory to save the model in.")
-    parser.add_argument("-e", "--epochs", type=int, default=50, help="Number of training epochs.")
+    parser.add_argument("-e", "--epochs", type=int, default=500, help="Number of training epochs.")
     parser.add_argument(
         "-b",
         "--batch-size",
@@ -185,7 +185,7 @@ def console_entry_point():
         "-s",
         "--steps-per-epoch",
         type=int,
-        default=30,
+        default=100,
         help="steps_per_epoch (batch) of each training loop",
     )
     parser.add_argument(
