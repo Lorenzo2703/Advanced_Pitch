@@ -154,7 +154,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-m",
         "--model",
-        default=os.path.join(os.path.expanduser('~'), "saved_models","20240815-1303", "model.best"),
+        default=os.path.join(os.path.expanduser('~'), "/home/seraf/DLAI/Advanced_Pitch/BasicPitch/My_models/model.best/"),
         type=str,
         help="Path to the saved model directory.",
     )
