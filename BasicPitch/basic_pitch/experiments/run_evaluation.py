@@ -158,7 +158,7 @@ if __name__ == "__main__":
         type=str,
         help="Path to the saved model directory.",
     )
-    parser.add_argument("--data-home", type=str,default=os.path.join(os.path.expanduser('~'), 'BasicPitch'), help="Location to store evaluation data.")
+    parser.add_argument("--data-home", default=os.path.join(os.path.expanduser('~'),'mir_datasets'), type=str, help="Location to store evaluation data.")
     args = parser.parse_args()
 
     main(args.model, args.data_home)
