@@ -97,7 +97,8 @@ def main(model_name: str, data_home: str) -> None:
     scores = {}
     
     # iterate trough a generator that yields the dataset, track_id, instrument, audio_path, and note_data
-    for dataset, track_id, instrument, audio_path, note_data in all_track_generator:        
+    for dataset, track_id, instrument, audio_path, note_data in all_track_generator:  
+        print("[{}] {}: {}".format(dataset, track_id, instrument))      
         # create the save path for the midi file
         save_path = os.path.join(save_dir, "{}.mid".format(track_id.replace("/", "-")))
 
@@ -128,7 +129,7 @@ def main(model_name: str, data_home: str) -> None:
         else:        
             ref_intervals, ref_pitches, _ = note_data.to_mir_eval()
         
-        print(est_intervals)
+        # print(est_intervals)
 
         if len(est_intervals) == 0 or len(ref_intervals) == 0:
             scores_trackid = {}
