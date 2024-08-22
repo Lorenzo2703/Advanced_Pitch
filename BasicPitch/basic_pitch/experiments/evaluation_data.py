@@ -56,7 +56,6 @@ def hwd_tracks(data_home):
 
     for track_id in test_tracks:
         instrument = track_id.split("_")[1].lower()
-        print(track_id.split("_"))
         audio_path = os.path.join(os.path.expanduser('~'), 'mir_datasets', 'hwd', f'MLEndHWD_{track_id.split("_")[0]}_Audio_Files' ,f'{track_id.split("_")[-1]}.wav')
         full_midi_path = os.path.join(os.path.expanduser('~'), 'mir_datasets', 'hwd', 'MIDI',f'{track_id.split("_")[0]}.mid')
         duration = sox.file_info.duration(audio_path)
@@ -128,9 +127,8 @@ def dagstuhl_tracks_singlevoice(data_home):
 def evaluation_data_generator(data_home, maestro_limit=None, slakh_limit=None):
     all_track_generator = chain(
         hwd_tracks(update_data_home(data_home, "hwd")),
-        guitarset_tracks(update_data_home(data_home, "guitarset")),
-        slakh_tracks(update_data_home(data_home, "slakh"), limit=slakh_limit),
+        #guitarset_tracks(update_data_home(data_home, "guitarset")),
+        #slakh_tracks(update_data_home(data_home, "slakh"), limit=slakh_limit),
         #dagstuhl_tracks_singlevoice(update_data_home(data_home, "dagstuhl_choirset")),
-        #maestro_tracks(update_data_home(data_home, "maestro"), limit=maestro_limit),
     )
     return all_track_generator

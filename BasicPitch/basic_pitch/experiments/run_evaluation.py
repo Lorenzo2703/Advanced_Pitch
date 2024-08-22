@@ -51,8 +51,8 @@ def model_inference(audio_path, model, minimum_note_length=127.70):
     estimated_notes = note_creation.output_to_notes_polyphonic(
         frames,
         onsets,
-        onset_thresh=0.5,
-        frame_thresh=0.3,
+        onset_thresh=0.3,
+        frame_thresh=0.1,
         infer_onsets=True,
         min_note_len=min_note_len, # needed in the function, it will throw error if not provided
         max_freq=None, # needed in the function, it will throw error if not provided
@@ -89,9 +89,6 @@ def main(model_name: str, data_home: str) -> None:
     #Load the trained model
     model_path = "{}".format(model_name)
     model = tf.saved_model.load(model_path)
-    # Print the weights of the model
-    for variable in model.variables:
-        print(variable.name, variable.shape)
 
     save_dir = os.path.join("model_outputs", model_name)
     os.makedirs(save_dir, exist_ok=True)
@@ -100,9 +97,7 @@ def main(model_name: str, data_home: str) -> None:
     scores = {}
     
     # iterate trough a generator that yields the dataset, track_id, instrument, audio_path, and note_data
-    for dataset, track_id, instrument, audio_path, note_data in all_track_generator:
-        print("[{}] {}: {}".format(dataset, track_id, instrument))
-        
+    for dataset, track_id, instrument, audio_path, note_data in all_track_generator:        
         # create the save path for the midi file
         save_path = os.path.join(save_dir, "{}.mid".format(track_id.replace("/", "-")))
 
@@ -132,6 +127,8 @@ def main(model_name: str, data_home: str) -> None:
             ref_pitches = note_data['pitch']
         else:        
             ref_intervals, ref_pitches, _ = note_data.to_mir_eval()
+        
+        print(est_intervals)
 
         if len(est_intervals) == 0 or len(ref_intervals) == 0:
             scores_trackid = {}
