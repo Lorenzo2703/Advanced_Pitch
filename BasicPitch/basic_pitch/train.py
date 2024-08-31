@@ -26,7 +26,8 @@ import numpy as np
 import tensorflow as tf 
 
 ### TODO remove this import
-from tensorflow import saved_model  
+from tensorflow import saved_model 
+from tensorflow.keras.models import Model
 from basic_pitch import ICASSP_2022_MODEL_PATH
 
 
@@ -77,13 +78,22 @@ def main(
     model = models.model(no_contours=no_contours)
     # start from the ICASSP 2022 model
     model_path = ICASSP_2022_MODEL_PATH
+
+    '''oldmodel = saved_model.load(str(model_path))
+    weights = oldmodel.variables
+    model.set_weights(weights)'''
+
     oldmodel = saved_model.load(str(model_path))
     weights = oldmodel.variables
     model.set_weights(weights)
-    for model_layer in model.layers:
-        if not model_layer.name.startswith("last"):
-            model_layer.trainable = False
-            print(f"Layer {model_layer.name} is not trainable")
+    out_dict = ['contour', 'note', 'onset']
+    out_shape = [264, 88, 88]
+    new_outputs = {}
+    for idx, a in enumerate(model.outputs):
+        new_outputs[out_dict[idx]] = tf.keras.layers.Dense(out_shape[idx], activation='relu')(a)
+    
+    model = Model(inputs=model.inputs, outputs=new_outputs)
+
 
     input_shape = list(model.input_shape)
     if input_shape[0] is None:
@@ -136,16 +146,12 @@ def main(
         ),
     ]
 
-    if no_contours:
-        loss = models.loss_no_contour(weighted=weighted_onset_loss, positive_weight=positive_onset_weight)
-    else:
-        loss = models.loss(weighted=weighted_onset_loss, positive_weight=positive_onset_weight)
+    loss = models.loss(weighted=weighted_onset_loss, positive_weight=positive_onset_weight)
 
     # train
     model.compile(
         loss=loss,
         optimizer=tf.keras.optimizers.Adam(learning_rate),
-        sample_weight_mode={"contour": None, "note": None, "onset": None},
     )
 
     logging.info("--- Model Training specs ---")
@@ -226,13 +232,13 @@ def console_entry_point():
     parser.add_argument(
         "--weighted-onset-loss",
         action="store_true",
-        default=True,
+        default=False,
         help="if given, trains onsets with a class-weighted loss",
     )
     parser.add_argument(
         "--positive-onset-weight",
         type=float,
-        default=0.95,
+        default=0.5,
         help="Positive class onset weight. Only applies when weignted onset loss is true.",
     )
 

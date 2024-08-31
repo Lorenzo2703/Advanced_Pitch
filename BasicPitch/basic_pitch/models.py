@@ -53,7 +53,7 @@ def transcription_loss(y_true: tf.Tensor, y_pred: tf.Tensor, label_smoothing: fl
 
 
 def weighted_transcription_loss(
-    y_true: tf.Tensor, y_pred: tf.Tensor, label_smoothing: float, positive_weight: float = 0.5
+    y_true: tf.Tensor, y_pred: tf.Tensor, label_smoothing: float, positive_weight: float = 0.95
 ) -> tf.Tensor:
     """The transcription loss where the positive and negative true labels are balanced by a weighting factor.
 
@@ -68,6 +68,7 @@ def weighted_transcription_loss(
     """
     negative_mask = tf.equal(y_true, 0)
     nonnegative_mask = tf.logical_not(negative_mask)
+
     bce_negative = tf.keras.losses.binary_crossentropy(
         tf.boolean_mask(y_true, negative_mask),
         tf.boolean_mask(y_pred, negative_mask),
@@ -103,7 +104,7 @@ def onset_loss(
     return lambda x, y: transcription_loss(x, y, label_smoothing=label_smoothing)
 
 
-def loss(label_smoothing: float = 0.2, weighted: bool = False, positive_weight: float = 0.5) -> Dict[str, Any]:
+def loss(label_smoothing: float = 0.2, weighted: bool = False, positive_weight: float = 0.95) -> Dict[str, Any]:
     """Creates a keras-compatible dictionary of loss functions to calculate
     the loss for the contour, note and onset posteriorgrams.
 
@@ -203,6 +204,7 @@ def model(
             N_FREQ_BINS_CONTOURS,
         )(x)
 
+    
     # contour layers - fully convolutional
     x_contours = tfkl.Conv2D(
         n_filters_contour,
@@ -278,6 +280,7 @@ def model(
         kernel_initializer=_initializer(),
         kernel_constraint=_kernel_constraint(),
     )(x)
+    
     x_onset = tfkl.BatchNormalization()(x_onset)
     x_onset = tfkl.ReLU()(x_onset)
     x_onset = tfkl.Concatenate(axis=3, name="concat")([x_notes_pre, x_onset])
