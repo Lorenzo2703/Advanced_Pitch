@@ -235,7 +235,7 @@ def model(
             activation="sigmoid",
             kernel_initializer=_initializer(),
             kernel_constraint=_kernel_constraint(),
-            name="contours-reduced",
+            name="last_contour_conv",
         )(x_contours)
         x_contours = nn.FlattenFreqCh(name=contour_name)(x_contours)  # contour output
 
@@ -263,8 +263,9 @@ def model(
         kernel_initializer=_initializer(),
         kernel_constraint=_kernel_constraint(),
         activation="sigmoid",
+        name="last_note_conv",
     )(x_contours_reduced)
-    x_notes = nn.FlattenFreqCh(name=note_name)(x_notes_pre)
+    x_notes = nn.FlattenFreqCh(name=note_name)(x_notes_pre) #output note
 
     # onset output layer
 
@@ -287,6 +288,7 @@ def model(
         activation="sigmoid",
         kernel_initializer=_initializer(),
         kernel_constraint=_kernel_constraint(),
+        name="last_onset_conv",
     )(x_onset)
 
     onset_name = "onset"

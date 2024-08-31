@@ -75,13 +75,15 @@ def main(
 
     # model
     model = models.model(no_contours=no_contours)
-
-    '''
+    # start from the ICASSP 2022 model
     model_path = ICASSP_2022_MODEL_PATH
     oldmodel = saved_model.load(str(model_path))
     weights = oldmodel.variables
     model.set_weights(weights)
-    '''
+    for model_layer in model.layers:
+        if not model_layer.name.startswith("last"):
+            model_layer.trainable = False
+            print(f"Layer {model_layer.name} is not trainable")
 
     input_shape = list(model.input_shape)
     if input_shape[0] is None:
@@ -224,13 +226,13 @@ def console_entry_point():
     parser.add_argument(
         "--weighted-onset-loss",
         action="store_true",
-        default=False,
+        default=True,
         help="if given, trains onsets with a class-weighted loss",
     )
     parser.add_argument(
         "--positive-onset-weight",
         type=float,
-        default=0.5,
+        default=0.95,
         help="Positive class onset weight. Only applies when weignted onset loss is true.",
     )
 

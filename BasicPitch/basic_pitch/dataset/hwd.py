@@ -48,6 +48,16 @@ HWD_DICT = {
     }
 
 def crop_and_shift_midi(midi_path, duration, song):
+    HWD_DICT = {
+        'Frozen': (67, [0], 120),
+        'Hakuna': (54, [6,7], 180),
+        'StarWars': (8, [0], 112),
+        'Panther': (23.5, [5], 120),
+        'Mamma': (48, [0], 140),
+        'Potter': (0, [0], 90),
+        'Rain': (8, [0], 120),
+        'Showman': (44.5, [0], 90)
+    }
     # load MIDI file
     midi_data = pretty_midi.PrettyMIDI(midi_path)
     # get start time and instruments to keep
