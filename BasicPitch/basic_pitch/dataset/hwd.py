@@ -27,6 +27,7 @@ import pandas as pd
 
 import apache_beam as beam
 import pretty_midi
+import soundfile as sf
 
 
 from basic_pitch.dataset import commandline, pipeline
@@ -189,6 +190,45 @@ def create_contour(midi_data):
     note_values = np.ones(note_indices.shape[0])
     return note_indices, note_values
 
+def shift_audio_pitch(audio_path, out_path):
+    # Estrazione di tutte le note (pitch) dal file MIDI
+
+    y, sr = librosa.load(audio_path)
+    duration = len(y) / sr
+    song_name = audio_path.split('/')[-2].split('_')[1]
+    midi_path = op.join(op.expanduser('~'), 'mir_datasets', 'hwd', 'MIDI', f'{song_name}.mid')
+
+    midi_data = crop_and_shift_midi(midi_path, duration=duration, song = song_name)
+
+    pitches, magnitudes = librosa.piptrack(y=y, sr=sr, n_fft=2048, hop_length=512)
+    pitch_values = []
+    for t in range(pitches.shape[1]):
+        index = magnitudes[:, t].argmax()
+        if pitches[index, t] > 0:
+            pitch_values.append(pitches[index, t])
+
+    converted_frequencies_to_midi = librosa.hz_to_midi(pitch_values) # AUDIO PITCH
+
+    midi_pitch = np.zeros(pitches.shape[1])
+
+    for instrument in midi_data.instruments:
+        for note in instrument.notes:
+            frame_start = int(librosa.time_to_frames(note.start, sr=sr, hop_length=512))
+            frame_end = int(librosa.time_to_frames(note.end, sr=sr, hop_length=512))
+            for i in range(frame_start, frame_end):
+                midi_pitch[i] = note.pitch # MIDI PITCH
+
+    avg_audio_pitch = np.mean(converted_frequencies_to_midi)
+    avg_midi_pitch = np.mean(midi_pitch[midi_pitch > 0])
+
+    # Differenza di semitoni
+    pitch_shift = avg_midi_pitch - avg_audio_pitch
+    
+    shifted_y = librosa.effects.pitch_shift(y=y, sr=sr, n_steps=pitch_shift)
+    sf.write(out_path, shifted_y, sr)
+    return 
+
+
 class HWDFilterInvalidTracks(beam.DoFn):
     def process(self, element: Tuple[str, str]):
         track_id, split = element
@@ -248,6 +288,7 @@ class HWDSetToTfExample(beam.DoFn):
                 tfm.channels(AUDIO_N_CHANNELS)
                 tfm.build(os.path.join(local_tmp_dir, audio_path), local_wav_path)
 
+                shift_audio_pitch(local_wav_path, local_wav_path)
                 
                 duration = sox.file_info.duration(local_wav_path)
                 time_scale = np.arange(0, duration + ANNOTATION_HOP, ANNOTATION_HOP)
