@@ -129,6 +129,6 @@ def evaluation_data_generator(data_home, maestro_limit=None, slakh_limit=None):
         hwd_tracks(update_data_home(data_home, "hwd")),
         guitarset_tracks(update_data_home(data_home, "guitarset")),
         slakh_tracks(update_data_home(data_home, "slakh"), limit=slakh_limit),
-        # dagstuhl_tracks_singlevoice(update_data_home(data_home, "dagstuhl_choirset")),
+        dagstuhl_tracks_singlevoice(update_data_home(data_home, "dagstuhl_choirset")),
     )
     return all_track_generator

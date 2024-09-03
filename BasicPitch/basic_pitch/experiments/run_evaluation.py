@@ -152,7 +152,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-m",
         "--model",
-        default=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "My_models/spotify-hwd/model.best/"),
+        default=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "My_models/guitar-slakh-hwd-dagstuhl/model.best/"),
         type=str,
         help="Path to the saved model directory.",
     )
