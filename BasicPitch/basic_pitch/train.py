@@ -76,24 +76,36 @@ def main(
 
     # model
     model = models.model(no_contours=no_contours)
-    # start from the ICASSP 2022 model
-    model_path = ICASSP_2022_MODEL_PATH
-
-    '''oldmodel = saved_model.load(str(model_path))
-    weights = oldmodel.variables
-    model.set_weights(weights)'''
-
+    '''
+    #LOAD A PRETRAINED MODEL
+    
+    model_path = {path_to_model}
     oldmodel = saved_model.load(str(model_path))
     weights = oldmodel.variables
     model.set_weights(weights)
+
+    #UNCOMMENT TO FREEZE ALL LAYERS EXCEPT THE LAST
+    for layer in model.layers:
+        if not layer.name.startswith('last'):
+            layer.trainable = False
+    
+    #UNCOMMENT TO ADD A NEW LAYER TO THE MODEL 
+    for layer in model.layers:
+        layer.trainable = False
+
     out_dict = ['contour', 'note', 'onset']
-    out_shape = [264, 88, 88]
     new_outputs = {}
-    for idx, a in enumerate(model.outputs):
-        new_outputs[out_dict[idx]] = tf.keras.layers.Dense(out_shape[idx], activation='relu')(a)
+    for idx, out_type in enumerate(model.outputs):
+        new_outputs[out_dict[idx]] = tf.keras.layers.Conv2D(
+        1,
+        (3, 3),
+        padding="same",
+        activation="sigmoid",
+        name="new_layer" + out_dict[idx],
+        )(out_type)
     
     model = Model(inputs=model.inputs, outputs=new_outputs)
-
+    '''
 
     input_shape = list(model.input_shape)
     if input_shape[0] is None:
